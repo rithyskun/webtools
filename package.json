@@ -12,11 +12,13 @@
   "dependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
+    "crypto-js": "^4.2.0",
     "dotenv": "^17.3.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "form-data": "^4.0.5",
     "googleapi": "^1.0.2",
+    "jsonwebtoken": "^9.0.3",
     "next": "16.1.6",
     "next-auth": "*",
     "node-fetch": "^3.3.2",
@@ -28,6 +30,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.1",
     "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "autoprefixer": "^10.4.27",
     "jest": "^30.2.0",
     "postcss": "^8.5.6",
