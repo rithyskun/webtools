@@ -26,8 +26,12 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
     "@types/jest": "^30.0.0",
+    "autoprefixer": "^10.4.27",
     "jest": "^30.2.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.2.1",
     "ts-jest": "^29.4.6"
   }
 }

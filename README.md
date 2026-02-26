@@ -74,6 +74,19 @@ You can enable any combination of Auth0, GitHub and Google (Gmail) accounts.
 The authentication routes are exposed under `/api/auth/*` and protected helpers are
 available in `src/lib/auth.ts`.
 
+You can style the sign‑in page yourself. A custom page is available at `/auth/signin` and
+NextAuth has been configured to use that path (see `pages.signIn` in
+`src/app/api/auth/[...nextauth]/route.ts`). Tailwind CSS powers the layout and
+is already installed; styles live in `src/styles/globals.css` and
+`tailwind.config.js` includes the `src/` directory in its `content` list.
+
+The server configuration now only registers OAuth providers when their
+required environment variables are present. Auth0 additionally verifies that
+`AUTH0_ISSUER` is a valid absolute URL – an invalid value will be skipped and a
+warning logged (this avoids the `SIGNIN_OAUTH_ERROR` you saw). If no providers
+are configured the application will still start but users can’t sign in until the
+appropriate keys/URLs are added.
+
 Required environment variables (see `.env.example` for placeholders):
 
 ```bash

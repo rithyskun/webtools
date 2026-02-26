@@ -7,31 +7,58 @@ import GoogleProvider from "next-auth/providers/google";
 // NOTE: environment variables must be defined in your environment or .env file.
 // See README.md and .env.example for details.
 
-export const authOptions = {
-  providers: [
-    Auth0Provider({
-      clientId: process.env.AUTH0_CLIENT_ID || "",
-      clientSecret: process.env.AUTH0_CLIENT_SECRET || "",
-      issuer: process.env.AUTH0_ISSUER || "",
-    }),
+const providers = [] as any[];
+
+// only add Auth0 if all credentials are present and issuer is a valid absolute URL
+if (
+  process.env.AUTH0_CLIENT_ID &&
+  process.env.AUTH0_CLIENT_SECRET &&
+  process.env.AUTH0_ISSUER
+) {
+  try {
+    // validate issuer URL
+    new URL(process.env.AUTH0_ISSUER);
+    providers.push(
+      Auth0Provider({
+        clientId: process.env.AUTH0_CLIENT_ID,
+        clientSecret: process.env.AUTH0_CLIENT_SECRET,
+        issuer: process.env.AUTH0_ISSUER,
+      })
+    );
+  } catch (err) {
+    console.warn("AUTH0_ISSUER is not a valid URL, skipping Auth0 provider.", err);
+  }
+}
+
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  providers.push(
     GitHubProvider({
-      clientId: process.env.GITHUB_CLIENT_ID || "",
-      clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
-    }),
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    })
+  );
+}
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  providers.push(
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-    }),
-  ],
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    })
+  );
+}
+
+export const authOptions = {
+  providers,
   // Use a secret to encrypt the JWT, and for NextAuth internal security
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
   },
   pages: {
-    // you can leave these commented if you want to rely on the
-    // built‑in NextAuth pages instead of custom ones
-    // signIn: "/auth/signin",
+    // use our styled client page instead of the default NextAuth UI
+    signIn: "/auth/signin",
+    // you can also customize other pages if desired
     // signOut: "/auth/signout",
     // error: "/auth/error",
   },
