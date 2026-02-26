@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { requireAuth } from "../../../lib/auth";
 
 // Example template generation logic
-function buildPromptTemplate() {
+export function buildPromptTemplate() {
   // In a real application you might build this dynamically based on input.
   return {
     title: "Default Prompt",
@@ -16,6 +17,12 @@ function buildPromptTemplate() {
 }
 
 export async function GET(request: NextRequest) {
+  // require the user to be signed in (returns a NextResponse when unauthorized)
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) {
+    return auth; // 401 response already built
+  }
+
   const template = buildPromptTemplate();
   return NextResponse.json(template);
 }

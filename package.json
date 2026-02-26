@@ -6,22 +6,28 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "jest"
   },
   "dependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "dotenv": "^17.3.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
     "form-data": "^4.0.5",
     "googleapi": "^1.0.2",
     "next": "16.1.6",
+    "next-auth": "*",
     "node-fetch": "^3.3.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "zod": "^4.3.6",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6"
   }
 }

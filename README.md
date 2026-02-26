@@ -2,7 +2,16 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First install runtime dependencies (the examples below show `npm`, adapt if using yarn/pnpm/bun).
+The `next-auth` dependency is specified with a wildcard version in `package.json`; choose a compatible release when you have internet access.
+
+```bash
+npm install
+# you may need to run this on a machine with registry access if the container is offline
+npm install next-auth            # (omit version or pick e.g. "next-auth@^4")
+```
+
+Then start the development server:
 
 ```bash
 npm run dev
@@ -57,6 +66,39 @@ Middleware (`src/middleware.ts`) now imports these updated modules, applies rate
   Set this in your local `.env` or via the Vercel dashboard (e.g. as `api_keys`).
 
 Note: earlier versions used a single `API_KEY`; the new validator supports multiple values and also offers hashing.
+
+#### Single sign‑on (SSO)
+
+This project can be configured to accept OAuth logins via [NextAuth.js](https://next-auth.js.org).
+You can enable any combination of Auth0, GitHub and Google (Gmail) accounts.
+The authentication routes are exposed under `/api/auth/*` and protected helpers are
+available in `src/lib/auth.ts`.
+
+Required environment variables (see `.env.example` for placeholders):
+
+```bash
+NEXTAUTH_SECRET=some-random-value
+
+# Auth0
+AUTH0_CLIENT_ID=…
+AUTH0_CLIENT_SECRET=…
+AUTH0_ISSUER=https://your-tenant.auth0.com
+
+# GitHub
+GITHUB_CLIENT_ID=…
+GITHUB_CLIENT_SECRET=…
+
+# Google
+GOOGLE_CLIENT_ID=…
+GOOGLE_CLIENT_SECRET=…
+```
+
+Once the variables are set, start the dev server and visit `http://localhost:3000/api/auth/signin`.
+You can protect API endpoints by calling `requireAuth(req)` from `src/lib/auth.ts`;
+`src/app/api/prompt-template/route.ts` contains an example of a guarded route.
+
+On Vercel simply add the corresponding environment variables in the dashboard.
+
 
 ### Vercel deployment
 
