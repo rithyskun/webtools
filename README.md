@@ -87,6 +87,20 @@ warning logged (this avoids the `SIGNIN_OAUTH_ERROR` you saw). If no providers
 are configured the application will still start but users can’t sign in until the
 appropriate keys/URLs are added.
 
+### Admin interface
+
+An administrative frontend is available at `/admin` once you are signed in via
+NextAuth. The dashboard lets you manage OAuth clients used by the token
+exchange API – you can create, edit, and delete clients along with their
+redirect URIs. The UI is protected by the same authentication used for the
+prompt-template endpoint; if you’re not signed in you’ll be redirected to the
+custom sign-in page.
+
+Clients created through this interface are persisted in MongoDB when
+`MONGODB_URI` is configured (the application falls back to an in-memory
+store otherwise). QA and automated tests already exercise the API backing the
+frontend, so you can extend the UI or add new configuration pages as needed.
+
 Required environment variables (see `.env.example` for placeholders):
 
 ```bash
