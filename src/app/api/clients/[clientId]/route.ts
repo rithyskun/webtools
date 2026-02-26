@@ -17,7 +17,7 @@ export async function GET(
     }
 
     const { clientId } = await params;
-    const client = getClient(clientId);
+    const client = await getClient(clientId);
 
     if (!client) {
       return NextResponse.json(
@@ -65,7 +65,7 @@ export async function PATCH(
     const { clientId } = await params;
     const body = (await request.json()) as Record<string, any>;
 
-    const client = getClient(clientId);
+    const client = await getClient(clientId);
     if (!client) {
       return NextResponse.json(
         { success: false, error: "Client not found" },
@@ -73,7 +73,7 @@ export async function PATCH(
       );
     }
 
-    const updated = updateClient(clientId, body);
+    const updated = await updateClient(clientId, body);
     if (!updated) {
       return NextResponse.json(
         { success: false, error: "Could not update client" },
@@ -110,7 +110,7 @@ export async function DELETE(
     }
 
     const { clientId } = await params;
-    const deleted = deleteClient(clientId);
+    const deleted = await deleteClient(clientId);
 
     if (!deleted) {
       return NextResponse.json(

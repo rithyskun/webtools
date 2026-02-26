@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify client exists
-    const client = getClient(client_id);
+    const client = await getClient(client_id);
     if (!client) {
       return NextResponse.json(
         { success: false, error: "Invalid client_id" },
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const refreshTokenString = issueRefreshToken(token.sub || "", client_id);
 
     // Store refresh token in database
-    const storedRefreshToken = createRefreshToken(
+    const storedRefreshToken = await createRefreshToken(
       client_id,
       token.sub || "",
       refreshTokenString

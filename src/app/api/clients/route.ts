@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       return auth; // unauthorized
     }
 
-    const clients = listClients();
+    const clients = await listClients();
     return NextResponse.json({
       success: true,
       clients: clients.map(({ secret, ...client }) => ({
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = createClient(name, redirectUris, allowedScopes);
+    const client = await createClient(name, redirectUris, allowedScopes);
 
     return NextResponse.json(
       {

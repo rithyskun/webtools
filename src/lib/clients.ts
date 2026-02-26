@@ -1,29 +1,54 @@
 import { Client, RefreshToken } from "../types/client";
 import crypto from "crypto";
+import { connectDatabase } from "./db";
 
 /**
- * In-memory clients and refresh tokens storage.
- * In production, use a real database (PostgreSQL, MongoDB, etc).
+ * This library supports both MongoDB (production) and an in-memory fallback
+ * (tests or when no database URI is provided).
+ *
+ * When running under NODE_ENV=test or if `MONGODB_URI` is unset, the original
+ * in-memory Maps from the earlier implementation are used.  Otherwise the
+ * MongoDB driver is used.
  */
 
-const clients: Map<string, Client> = new Map();
-const refreshTokens: Map<string, RefreshToken> = new Map();
+const CLIENT_COLLECTION = "clients";
+const REFRESH_COLLECTION = "refresh_tokens";
 
-/**
- * Generate a random string for client ID or secret.
- */
+// in-memory storage for tests
+const clientsMemory: Map<string, Client> = new Map();
+const refreshMemory: Map<string, RefreshToken> = new Map();
+
+function usingMemory(): boolean {
+  // Use in-memory storage only if MONGODB_URI is not set
+  return !process.env.MONGODB_URI;
+}
+
 export function generateRandomString(length: number = 32): string {
   return crypto.randomBytes(length).toString("hex");
 }
 
-/**
- * Create a new OAuth client.
- */
-export function createClient(
+// Export a function to clear in-memory storage for testing
+export function clearMemoryStorage(): void {
+  clientsMemory.clear();
+  refreshMemory.clear();
+}
+
+
+async function getClientsCollection() {
+  const db = await connectDatabase();
+  return db.collection<Client>(CLIENT_COLLECTION);
+}
+
+async function getRefreshCollection() {
+  const db = await connectDatabase();
+  return db.collection<RefreshToken>(REFRESH_COLLECTION);
+}
+
+export async function createClient(
   name: string,
   redirectUris: string[],
   allowedScopes: string[] = ["openid", "profile", "email"]
-): Client {
+): Promise<Client> {
   const id = `client_${generateRandomString(16)}`;
   const secret = generateRandomString(32);
 
@@ -37,67 +62,77 @@ export function createClient(
     updatedAt: new Date().toISOString(),
   };
 
-  clients.set(id, client);
+  if (usingMemory()) {
+    clientsMemory.set(id, client);
+    return client;
+  }
+
+  const col = await getClientsCollection();
+  await col.insertOne(client);
   return client;
 }
 
-/**
- * Get a client by ID.
- */
-export function getClient(clientId: string): Client | undefined {
-  return clients.get(clientId);
+export async function getClient(clientId: string): Promise<Client | null> {
+  if (usingMemory()) {
+    return clientsMemory.get(clientId) || null;
+  }
+  const col = await getClientsCollection();
+  return await col.findOne({ id: clientId });
 }
 
-/**
- * List all clients.
- */
-export function listClients(): Client[] {
-  return Array.from(clients.values());
+export async function listClients(): Promise<Client[]> {
+  if (usingMemory()) {
+    return Array.from(clientsMemory.values());
+  }
+  const col = await getClientsCollection();
+  return await col.find().toArray();
 }
 
-/**
- * Verify client credentials (ID and secret).
- */
-export function verifyClientSecret(clientId: string, secret: string): boolean {
-  const client = clients.get(clientId);
+export async function verifyClientSecret(clientId: string, secret: string): Promise<boolean> {
+  const client = await getClient(clientId);
   return client ? client.secret === secret : false;
 }
 
-/**
- * Update a client.
- */
-export function updateClient(clientId: string, updates: Partial<Client>): Client | undefined {
-  const client = clients.get(clientId);
-  if (!client) return undefined;
+export async function updateClient(
+  clientId: string,
+  updates: Partial<Client>
+): Promise<Client | null> {
+  const current = await getClient(clientId);
+  if (!current) return null;
 
   const updated: Client = {
-    ...client,
+    ...current,
     ...updates,
-    id: client.id, // don't allow ID changes
-    createdAt: client.createdAt, // don't allow creation date changes
+    id: current.id,
+    createdAt: current.createdAt,
     updatedAt: new Date().toISOString(),
   };
 
-  clients.set(clientId, updated);
+  if (usingMemory()) {
+    clientsMemory.set(clientId, updated);
+    return updated;
+  }
+
+  const col = await getClientsCollection();
+  await col.updateOne({ id: clientId }, { $set: updated });
   return updated;
 }
 
-/**
- * Delete a client.
- */
-export function deleteClient(clientId: string): boolean {
-  return clients.delete(clientId);
+export async function deleteClient(clientId: string): Promise<boolean> {
+  if (usingMemory()) {
+    return clientsMemory.delete(clientId);
+  }
+  const col = await getClientsCollection();
+  const result = await col.deleteOne({ id: clientId });
+  return result.deletedCount === 1;
 }
 
-/**
- * Create a refresh token.
- */
-export function createRefreshToken(
+export async function createRefreshToken(
   clientId: string,
   userId: string,
   tokenString: string,
   expiresInDays: number = 7
-): RefreshToken {
+): Promise<RefreshToken> {
   const id = `refresh_${generateRandomString(16)}`;
   const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString();
 
@@ -110,37 +145,48 @@ export function createRefreshToken(
     createdAt: new Date().toISOString(),
   };
 
-  refreshTokens.set(id, refreshToken);
+  if (usingMemory()) {
+    refreshMemory.set(id, refreshToken);
+    return refreshToken;
+  }
+
+  const col = await getRefreshCollection();
+  await col.insertOne(refreshToken);
   return refreshToken;
 }
 
-/**
- * Get a refresh token by its string value.
- */
-export function getRefreshToken(tokenString: string): RefreshToken | undefined {
-  for (const token of refreshTokens.values()) {
-    if (token.token === tokenString && !token.revokedAt) {
-      // check expiration
-      if (new Date(token.expiresAt) > new Date()) {
-        return token;
+export async function getRefreshToken(tokenString: string): Promise<RefreshToken | null> {
+  if (usingMemory()) {
+    for (const token of refreshMemory.values()) {
+      if (token.token === tokenString && !token.revokedAt) {
+        if (new Date(token.expiresAt) > new Date()) {
+          return token;
+        }
       }
     }
+    return null;
   }
-  return undefined;
+  const col = await getRefreshCollection();
+  const token = await col.findOne({ token: tokenString, revokedAt: { $exists: false } });
+  if (!token) return null;
+  if (new Date(token.expiresAt) <= new Date()) return null;
+  return token;
 }
 
-/**
- * Revoke a refresh token.
- */
-export function revokeRefreshToken(tokenString: string): boolean {
-  for (const [id, token] of refreshTokens.entries()) {
-    if (token.token === tokenString) {
-      refreshTokens.set(id, {
-        ...token,
-        revokedAt: new Date().toISOString(),
-      });
-      return true;
+export async function revokeRefreshToken(tokenString: string): Promise<boolean> {
+  if (usingMemory()) {
+    for (const [id, token] of refreshMemory.entries()) {
+      if (token.token === tokenString) {
+        refreshMemory.set(id, { ...token, revokedAt: new Date().toISOString() });
+        return true;
+      }
     }
+    return false;
   }
-  return false;
+  const col = await getRefreshCollection();
+  const result = await col.updateOne(
+    { token: tokenString },
+    { $set: { revokedAt: new Date().toISOString() } }
+  );
+  return result.modifiedCount === 1;
 }

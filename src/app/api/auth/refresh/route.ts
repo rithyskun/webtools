@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify client exists and is still valid
-    const client = getClient(client_id);
+    const client = await getClient(client_id);
     if (!client) {
       return NextResponse.json(
         { success: false, error: "Invalid client_id" },
@@ -87,9 +87,9 @@ export async function POST(request: NextRequest) {
     );
 
     // Optionally rotate refresh token (revoke old, issue new)
-    revokeRefreshToken(refresh_token);
+    await revokeRefreshToken(refresh_token);
     const newRefreshTokenString = issueRefreshToken(decoded.sub, client_id);
-    createRefreshToken(client_id, decoded.sub, newRefreshTokenString);
+    await createRefreshToken(client_id, decoded.sub, newRefreshTokenString);
 
     return NextResponse.json({
       success: true,
